@@ -1,0 +1,116 @@
+import tkinter as tk
+import random
+
+GRID_WIDTH = 10
+GRID_HEIGHT = 10
+BLOCK_SIZE = 30
+
+def draw_grid(canvas):
+    for x in range(0, GRID_WIDTH * BLOCK_SIZE, BLOCK_SIZE):
+        canvas.create_line(x, 0, x, GRID_HEIGHT * BLOCK_SIZE, fill='gray')
+    for y in range(0, GRID_HEIGHT * BLOCK_SIZE, BLOCK_SIZE):
+        canvas.create_line(0, y, GRID_WIDTH * BLOCK_SIZE, y, fill='gray')
+
+def start_game(canvas, original_answers, answer_label, score_label):
+    answer_label.config(text="")
+    canvas.unbind("<Button-1>")  # Unbind the mouse click event
+    display_images(canvas, original_answers, answer_label, score_label)
+
+def restart_game(canvas, original_answers, answer_label, score_label):
+    answer_label.config(text="")
+    canvas.unbind("<Button-1>")  # Unbind the mouse click event
+    display_images(canvas, original_answers, answer_label, score_label)
+
+def display_images(canvas, original_answers, answer_label, score_label):
+    # Clear the canvas
+    canvas.delete("all")
+
+    # Draw the grid
+    draw_grid(canvas)
+
+    colors = ["red", "green", "blue", "yellow"]
+
+    # Store the original answers for comparison
+    original_answers.clear()
+
+    for i in range(len(colors)):
+        # Generate a random location for the image based on 1x1 blocks
+        x = random.randint(0, GRID_WIDTH - 1)
+        y = random.randint(0, GRID_HEIGHT - 1)
+
+        # Store the correct answers based on 1x1 blocks
+        original_answers.append((x, y))
+
+        # Example: Display a colored rectangle at the generated location
+        canvas.create_rectangle(x * BLOCK_SIZE, y * BLOCK_SIZE, (x + 1) * BLOCK_SIZE, (y + 1) * BLOCK_SIZE, fill=colors[i])
+
+    # Give users time to observe the images before they disappear (1800 milliseconds)
+    root.after(1800, lambda: hide_images(canvas, original_answers, answer_label, score_label))
+
+def hide_images(canvas, original_answers, answer_label, score_label):
+    # Clear the canvas
+    canvas.delete("all")
+
+    # Draw the grid
+    draw_grid(canvas)
+
+    answer_label.config(text="")
+
+    # After hiding the images, enable the grid for input
+    canvas.bind("<Button-1>", lambda event: enter_input(event, original_answers, answer_label, score_label))
+
+def enter_input(event, original_answers, answer_label, score_label):
+    x, y = event.x // BLOCK_SIZE, event.y // BLOCK_SIZE
+
+    if (x, y) in original_answers:
+        original_answers.remove((x, y))
+        if not original_answers:
+            answer_label.config(text="You have won!")
+            canvas.unbind("<Button-1>")  # Disable further clicks on the canvas
+            update_score(score_label, 5)  # Add 5 points for a win
+    else:
+        show_missed_blocks(canvas, original_answers)
+        answer_label.config(text="Mistake! Missed Blocks Shown. Click 'Replay' to play again.")
+        canvas.unbind("<Button-1>")  # Disable further clicks on the canvas
+        update_score(score_label, -1)  # Subtract 1 point for a loss
+
+def show_missed_blocks(canvas, original_answers):
+    for x, y in original_answers:
+        canvas.create_rectangle(x * BLOCK_SIZE, y * BLOCK_SIZE, (x + 1) * BLOCK_SIZE, (y + 1) * BLOCK_SIZE, fill='red')
+
+def update_score(score_label, points):
+    current_score = int(score_label.cget("text"))
+    current_score += points
+    score_label.config(text=str(current_score))
+
+def restart_new_game():
+    original_answers.clear()
+    score_label.config(text="0")
+    start_game(canvas, original_answers, answer_label, score_label)
+
+root = tk.Tk()
+root.title("Image Resemblance")
+
+canvas = tk.Canvas(root, width=GRID_WIDTH * BLOCK_SIZE, height=GRID_HEIGHT * BLOCK_SIZE)
+canvas.pack()
+
+draw_grid(canvas)
+
+original_answers = []  # Initialize with an empty list
+
+answer_label = tk.Label(root, text="")
+answer_label.pack()
+
+score_label = tk.Label(root, text="0")
+score_label.pack()
+
+start_button = tk.Button(root, text="Start", command=lambda: start_game(canvas, original_answers, answer_label, score_label))
+start_button.pack()
+
+replay_button = tk.Button(root, text="Replay", command=lambda: restart_game(canvas, original_answers, answer_label, score_label))
+replay_button.pack()
+
+restart_button = tk.Button(root, text="Restart New Game", command=restart_new_game)
+restart_button.pack()
+
+root.mainloop()
